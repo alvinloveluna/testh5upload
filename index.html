@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Multiple Photos/Videos and Text</title>
+</head>
+<body>
+    <h1>Upload Multiple Photos/Videos and Text</h1>
+    
+    <form id="uploadForm">
+        <!-- 文字输入 -->
+        <label for="textInput">Enter text:</label><br>
+        <textarea id="textInput" name="text" placeholder="Enter some text" rows="4" cols="50"></textarea><br><br>
+
+        <!-- 照片/视频上传 -->
+        <label for="fileInput">Upload photos/videos:</label><br>
+        <input type="file" id="fileInput" name="files" accept="image/*,video/*" multiple><br><br>
+
+        <!-- 提交按钮 -->
+        <button type="submit">Submit</button>
+    </form>
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault(); // 阻止表单的默认提交
+
+            // 创建 FormData 对象
+            const formData = new FormData();
+            const text = document.getElementById('textInput').value;
+            const files = document.getElementById('fileInput').files;
+
+            formData.append('text', text);
+
+            // 遍历所有选中的文件并添加到 formData
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files[]', files[i]);
+            }
+
+            // 发送请求到服务器
+            fetch('https://your-server-url.com/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => console.log('Success:', data))
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>

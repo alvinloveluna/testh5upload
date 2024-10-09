@@ -3,76 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Form</title>
+    <title>Record and Play Audio</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+        button {
+            margin: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Upload Your Content</h1>
 
-    <form id="uploadForm">
-        <!-- 上传封面照片（单选） -->
-        <label for="coverPhoto">Upload cover photo:</label><br>
-        <input type="file" id="coverPhoto" name="coverPhoto" accept="image/*"><br><br>
-
-        <!-- 上传内容照片（多选） -->
-        <label for="contentPhotos">Upload content photos:</label><br>
-        <input type="file" id="contentPhotos" name="contentPhotos" accept="image/*" multiple><br><br>
-
-        <!-- 填写标题 -->
-        <label for="titleInput">Title:</label><br>
-        <input type="text" id="titleInput" name="title" placeholder="Enter title" required><br><br>
-
-        <!-- 填写文本 -->
-        <label for="textInput">Description:</label><br>
-        <textarea id="textInput" name="text" placeholder="Enter some text" rows="4" cols="50"></textarea><br><br>
-
-        <!-- 填写地址 -->
-        <label for="addressInput">Address:</label><br>
-        <input type="text" id="addressInput" name="address" placeholder="Enter address" required><br><br>
-
-        <!-- 提交按钮 -->
-        <button type="submit">Submit</button>
-    </form>
+    <button id="startRecord">Start Recording</button>
+    <button id="playAudio" disabled>Play Recording</button>
 
     <script>
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
-            e.preventDefault(); // 阻止表单的默认提交
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBlob;
+        let audioUrl;
+        let audio;
 
-            // 创建 FormData 对象
-            const formData = new FormData();
-            
-            // 封面照片
-            const coverPhoto = document.getElementById('coverPhoto').files[0];
-            if (coverPhoto) {
-                formData.append('coverPhoto', coverPhoto);
+        const startRecordButton = document.getElementById('startRecord');
+        const playAudioButton = document.getElementById('playAudio');
+
+        // Request access to the microphone and start recording
+        startRecordButton.addEventListener('click', async () => {
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+
+                    mediaRecorder.ondataavailable = (event) => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                        audioUrl = URL.createObjectURL(audioBlob);
+                        audio = new Audio(audioUrl);
+                        playAudioButton.disabled = false;
+                    };
+
+                    mediaRecorder.start();
+                    startRecordButton.textContent = 'Stop Recording';
+                } catch (error) {
+                    console.error('Error accessing microphone:', error);
+                    alert('Unable to access microphone.');
+                }
+            } else if (mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                startRecordButton.textContent = 'Start Recording';
+                audioChunks = []; // Reset chunks for next recording
             }
+        });
 
-            // 内容照片（多选）
-            const contentPhotos = document.getElementById('contentPhotos').files;
-            for (let i = 0; i < contentPhotos.length; i++) {
-                formData.append('contentPhotos[]', contentPhotos[i]);
+        // Play the recorded audio
+        playAudioButton.addEventListener('click', () => {
+            if (audio) {
+                audio.play();
             }
-
-            // 标题
-            const title = document.getElementById('titleInput').value;
-            formData.append('title', title);
-
-            // 文本描述
-            const text = document.getElementById('textInput').value;
-            formData.append('text', text);
-
-            // 地址
-            const address = document.getElementById('addressInput').value;
-            formData.append('address', address);
-
-            // 发送请求到服务器
-            fetch('https://your-server-url.com/upload', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => console.log('Success:', data))
-            .catch(error => console.error('Error:', error));
         });
     </script>
+
 </body>
 </html>
